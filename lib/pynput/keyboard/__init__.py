@@ -144,6 +144,7 @@ class HotKey(object):
             elif len(s) > 2 and (s[0], s[-1]) == ('<', '>'):
                 p = s[1:-1]
                 try:
+                    # return Key[p.lower()]
                     # We want to represent modifiers as Key instances, and all
                     # other keys as KeyCodes
                     key = Key[p.lower()]
@@ -169,9 +170,11 @@ class HotKey(object):
         if len(parsed_parts) != len(set(parsed_parts)):
             raise ValueError(keys)
         else:
+            print(parsed_parts)
             return parsed_parts
 
     def press(self, key):
+        print(key)
         """Updates the hotkey state for a pressed key.
 
         If the key is not currently pressed, but is the last key for the full

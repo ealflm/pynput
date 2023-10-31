@@ -205,7 +205,7 @@ class Controller(NotifierMixin, _base.Controller):
         # pylint: enable=C0103
 
     def __del__(self):
-        if hasattr(self, '_display'):
+        if self._display:
             self._display.close()
 
     @property
@@ -223,8 +223,9 @@ class Controller(NotifierMixin, _base.Controller):
     def _handle(self, key, is_press):
         """Resolves a key identifier and sends a keyboard event.
 
-        :param int key: The key to handle.
-        :param bool is_press: Whether this is a press.
+        :param event: The *X* keyboard event.
+
+        :param int keysym: The keysym to handle.
         """
         event = Xlib.display.event.KeyPress if is_press \
             else Xlib.display.event.KeyRelease
@@ -413,26 +414,11 @@ class Controller(NotifierMixin, _base.Controller):
         #: Registers a keycode for a specific key and modifier state
         def register(dm, keycode, index):
             i = kc2i(keycode)
-
-            # Check for use of empty mapping with a character that has upper
-            # and lower forms
-            lower = key.char.lower()
-            upper = key.char.upper()
-            if lower != upper and len(lower) == 1 and len(upper) == 1 and all(
-                    m == Xlib.XK.NoSymbol
-                    for m in mapping[i]):
-                lower = self._key_to_keysym(KeyCode.from_char(lower))
-                upper = self._key_to_keysym(KeyCode.from_char(upper))
-                if lower:
-                    mapping[i][0] = lower
-                    self._borrows[lower] = (keycode, 0, 0)
-                if upper:
-                    mapping[i][1] = upper
-                    self._borrows[upper] = (keycode, 1, 0)
-            else:
-                mapping[i][index] = keysym
-                self._borrows[keysym] = (keycode, index, 0)
-            dm.change_keyboard_mapping(keycode, mapping[i:i + 1])
+            mapping[i][index] = keysym
+            dm.change_keyboard_mapping(
+                keycode,
+                mapping[i:i + 1])
+            self._borrows[keysym] = (keycode, index, 0)
 
         try:
             with display_manager(self._display) as dm, self._borrow_lock as _:
@@ -559,7 +545,7 @@ class Listener(ListenerMixin, _base.Listener):
             super(Listener, self)._run()
 
     def _initialize(self, display):
-        # Get the keyboard mapping to be able to translate event details to
+        # Get the keyboard mapping to be able to translate events details to
         # key codes
         min_keycode = display.display.info.min_keycode
         keycode_count = display.display.info.max_keycode - min_keycode + 1
